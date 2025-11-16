@@ -263,7 +263,7 @@ Through building FitTrack, I gained experience with:
 This project was created as the final project for CS50x - Introduction to Computer Science.
 
 **Developer**: Bruno De Negri Walzer
-**Course**: CS50x 2024
+**Course**: CS50x 2025
 **Institution**: Harvard University
 
 ## License
