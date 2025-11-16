@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FitTrack{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Dashboard</h1>
+        <a href="{{ url_for('new_workout') }}" class="btn btn-primary">+ New Workout</a>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-value">{{ training_count }}</div>
+            <div class="stat-label">Workouts this month</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value">{{ workouts|length }}</div>
+            <div class="stat-label">Workout programs</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📅 Training Calendar</h2>
+        <div class="calendar-controls">
+            <button class="calendar-nav-btn" id="prevMonth">◀</button>
+            <span class="calendar-current-month" id="currentMonthLabel"></span>
+            <button class="calendar-nav-btn" id="nextMonth">▶</button>
+        </div>
+        <div id="calendar-container"></div>
+        <div class="calendar-legend">
+            <span class="legend-item"><span class="legend-box no-workout"></span> No workout</span>
+            <span class="legend-item"><span class="legend-box has-workout"></span> Trained</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Your Workout Programs</h2>
+
+        {% if workouts %}
+        <div class="workout-grid">
+            {% for workout in workouts %}
+            <div class="workout-card">
+                <h3>{{ workout.name }}</h3>
+                <div class="workout-actions">
+                    <a href="{{ url_for('workout_detail', workout_id=workout.id) }}" class="btn btn-secondary">
+                        View Exercises
+                    </a>
+                    <a href="{{ url_for('train_workout', workout_id=workout.id) }}" class="btn btn-success">
+                        🏋️ Train Now
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>You haven't created any workout programs yet.</p>
+            <a href="{{ url_for('new_workout') }}" class="btn btn-primary">Create First Program</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if recent_trainings %}
+    <div class="section">
+        <h2>Recent Workouts</h2>
+        <div class="training-list">
+            {% for training in recent_trainings %}
+            <div class="training-item">
+                <div class="training-details">
+                    <span class="training-date">{{ training.date }}</span>
+                    <span class="training-name">{{ training.workout_name }}</span>
+                </div>
+                <span class="training-count">{{ training.exercise_count }} exercises</span>
+            </div>
+            {% endfor %}
+        </div>
+        <a href="{{ url_for('history') }}" class="btn btn-secondary" style="margin-top: 1rem;">View Full History</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal for workout details -->
+<div id="workoutModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeWorkoutModal()">&times;</span>
+        <h2 id="modalDate"></h2>
+        <div id="modalWorkouts"></div>
+    </div>
+</div>
+
+<script>
+// Training days data from backend (just list of dates now)
+const trainingDays = {{ training_days|tojson }};
+
+let currentDisplayMonth = new Date();
+let currentDisplayYear = new Date().getFullYear();
+
+function generateCalendar() {
+    const container = document.getElementById('calendar-container');
+    if (!container) return;
+
+    // LIMPA TUDO ANTES
+    container.innerHTML = '';
+
+    // CRIA APENAS UM MÊS
+    const monthDiv = createMonthCalendar(currentDisplayMonth);
+    container.appendChild(monthDiv);
+
+    // Atualiza o label do mês
+    document.getElementById('currentMonthLabel').textContent =
+        currentDisplayMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function createMonthCalendar(date) {
+    const monthDiv = document.createElement('div');
+    monthDiv.className = 'calendar-month';
+
+    // Weekday labels
+    const weekdaysDiv = document.createElement('div');
+    weekdaysDiv.className = 'calendar-weekdays';
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    weekdays.forEach(day => {
+        const dayLabel = document.createElement('div');
+        dayLabel.className = 'weekday-label';
+        dayLabel.textContent = day;
+        weekdaysDiv.appendChild(dayLabel);
+    });
+    monthDiv.appendChild(weekdaysDiv);
+
+    // Days grid
+    const daysDiv = document.createElement('div');
+    daysDiv.className = 'calendar-days';
+
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    // Empty cells for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day empty';
+        daysDiv.appendChild(emptyDay);
+    }
+
+    // Days of the month
+    for (let day = 1; day <= lastDate; day++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const today = new Date();
+        const currentDate = new Date(year, month, day);
+
+        // Check if it's today
+        if (currentDate.toDateString() === today.toDateString()) {
+            dayDiv.classList.add('today');
+        }
+
+        // Check if there's a workout on this day
+        if (trainingDays.includes(dateStr)) {
+            dayDiv.classList.add('has-workout');
+            dayDiv.onclick = () => loadAndShowWorkoutDetails(dateStr);
+        }
+
+        // Don't highlight future dates
+        if (currentDate > today) {
+            dayDiv.classList.add('future');
+        }
+
+        dayDiv.textContent = day;
+        daysDiv.appendChild(dayDiv);
+    }
+
+    monthDiv.appendChild(daysDiv);
+    return monthDiv;
+}
+
+async function loadAndShowWorkoutDetails(date) {
+    const modal = document.getElementById('workoutModal');
+    const modalDate = document.getElementById('modalDate');
+    const modalWorkouts = document.getElementById('modalWorkouts');
+
+    // Show loading
+    modalWorkouts.innerHTML = '<p style="text-align: center; color: #6b7280;">Loading...</p>';
+    modal.style.display = 'flex';
+
+    try {
+        const response = await fetch(`/api/workout-details/${date}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load workout');
+        }
+
+        // Format date
+        const dateObj = new Date(date + 'T00:00:00');
+        modalDate.textContent = '🏋️ ' + dateObj.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Display workout name and exercises
+        modalWorkouts.innerHTML = `
+            <div style="margin-bottom: 1rem;">
+                <h3 style="color: var(--primary); font-size: 1.2rem;">${data.workout_name}</h3>
+            </div>
+        `;
+
+        data.exercises.forEach(exercise => {
+            const exerciseDiv = document.createElement('div');
+            exerciseDiv.className = 'record-item';
+            exerciseDiv.innerHTML = `
+                <div class="record-exercise">
+                    <span class="exercise-name">💪 ${exercise.name}</span>
+                    <span class="muscle-badge-small">${exercise.muscle_group}</span>
+                </div>
+                <div class="record-stats">
+                    <div class="stat-box-inline">
+                        <span class="stat-label-inline">Sets</span>
+                        <span class="stat-value-inline">${exercise.sets}</span>
+                    </div>
+                    <span class="stat-separator">×</span>
+                    <div class="stat-box-inline">
+                        <span class="stat-label-inline">Reps</span>
+                        <span class="stat-value-inline">${exercise.reps}</span>
+                    </div>
+                    <span class="stat-separator">@</span>
+                    <div class="stat-box-inline">
+                        <span class="stat-label-inline">Weight</span>
+                        <span class="stat-value-inline weight">${exercise.weight} kg</span>
+                    </div>
+                </div>
+            `;
+            modalWorkouts.appendChild(exerciseDiv);
+        });
+
+    } catch (error) {
+        modalWorkouts.innerHTML = `<p style="text-align: center; color: var(--danger);">Error loading workout details</p>`;
+        console.error('Error:', error);
+    }
+}
+
+function closeWorkoutModal() {
+    document.getElementById('workoutModal').style.display = 'none';
+}
+
+// Navigation - IMPORTANTE: criar nova data para não bugar
+document.getElementById('prevMonth').addEventListener('click', () => {
+    currentDisplayMonth = new Date(currentDisplayMonth.getFullYear(), currentDisplayMonth.getMonth() - 1, 1);
+    generateCalendar();
+});
+
+document.getElementById('nextMonth').addEventListener('click', () => {
+    currentDisplayMonth = new Date(currentDisplayMonth.getFullYear(), currentDisplayMonth.getMonth() + 1, 1);
+    generateCalendar();
+});
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('workoutModal');
+    if (event.target == modal) {
+        closeWorkoutModal();
+    }
+}
+
+// Generate calendar on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', generateCalendar);
+} else {
+    generateCalendar();
+}
+</script>
+{% endblock %}

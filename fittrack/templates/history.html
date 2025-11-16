@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}History - FitTrack{% endblock %}
+
+{% block content %}
+<div class="history-container">
+    <h1>📅 Workout History</h1>
+
+    {% if history_data and history_data|length > 0 %}
+    <div class="history-list">
+        {% for day in history_data %}
+        <div class="history-card">
+            <div class="history-header">
+                <div class="history-date">
+                    <span class="date-day">{{ day.date[8:10] }}</span>
+                    <span class="date-month">{{ day.date[5:7] }}/{{ day.date[0:4] }}</span>
+                </div>
+                <div class="history-info">
+                    <h3>{{ day.workout_name }}</h3>
+                    <span class="history-status">✓ Completed • {{ day.records|length }} exercises</span>
+                </div>
+                {% if day.records and day.records|length > 0 %}
+                <button class="btn-details" onclick="toggleDetails({{ loop.index0 }})">
+                    <span class="details-text">Show Details</span>
+                    <span class="details-icon">▼</span>
+                </button>
+                {% endif %}
+            </div>
+
+            {% if day.records and day.records|length > 0 %}
+            <div class="workout-details" id="details-{{ loop.index0 }}" style="display: none;">
+                <div class="exercise-records">
+                    {% for record in day.records %}
+                    <div class="record-item">
+                        <div class="record-exercise">
+                            <span class="exercise-name">💪 {{ record.exercise_name }}</span>
+                            <span class="muscle-badge-small">{{ record.muscle_group }}</span>
+                        </div>
+                        <div class="record-stats">
+                            <div class="stat-box-inline">
+                                <span class="stat-label-inline">Sets</span>
+                                <span class="stat-value-inline">{{ record.sets }}</span>
+                            </div>
+                            <span class="stat-separator">×</span>
+                            <div class="stat-box-inline">
+                                <span class="stat-label-inline">Reps</span>
+                                <span class="stat-value-inline">{{ record.reps }}</span>
+                            </div>
+                            <span class="stat-separator">@</span>
+                            <div class="stat-box-inline">
+                                <span class="stat-label-inline">Weight</span>
+                                <span class="stat-value-inline weight">{{ record.weight }} kg</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="workout-details">
+                <p style="color: #6b7280; font-style: italic; text-align: center; padding: 1rem;">No exercise details recorded for this workout.</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>You haven't logged any workouts yet.</p>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleDetails(index) {
+    const details = document.getElementById('details-' + index);
+    const button = event.currentTarget;
+    const icon = button.querySelector('.details-icon');
+    const text = button.querySelector('.details-text');
+
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        icon.textContent = '▲';
+        text.textContent = 'Hide Details';
+        button.classList.add('active');
+    } else {
+        details.style.display = 'none';
+        icon.textContent = '▼';
+        text.textContent = 'Show Details';
+        button.classList.remove('active');
+    }
+}
+</script>
+{% endblock %}

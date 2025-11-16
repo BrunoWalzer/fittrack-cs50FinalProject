@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Train - {{ workout.name }}{% endblock %}
+
+{% block content %}
+<div class="train-container">
+    <div class="page-header">
+        <h1>🏋️ {{ workout.name }}</h1>
+        <span class="train-date">Today</span>
+    </div>
+
+    <form id="trainForm" class="train-form">
+        {% for exercise in exercises %}
+        <div class="exercise-card" data-exercise-id="{{ exercise.id }}">
+            <h3>{{ exercise.name }}</h3>
+            <span class="muscle-badge">{{ exercise.muscle_group }}</span>
+
+            <div class="exercise-inputs">
+                <div class="input-group">
+                    <label>Sets</label>
+                    <input type="number" class="sets-input" min="1" max="10" value="3" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Reps</label>
+                    <input type="number" class="reps-input" min="1" max="50" value="10" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Weight (kg)</label>
+                    <input type="number" class="weight-input" min="0" step="0.5" value="0" required>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success btn-lg">✓ Complete Workout</button>
+        </div>
+    </form>
+</div>
+
+<div id="successModal" class="modal">
+    <div class="modal-content">
+        <h2>🎉 Workout Completed!</h2>
+        <p>Congratulations! Your workout has been logged successfully.</p>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('trainForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const exercises = [];
+    document.querySelectorAll('.exercise-card').forEach(card => {
+        exercises.push({
+            id: parseInt(card.dataset.exerciseId),
+            sets: parseInt(card.querySelector('.sets-input').value),
+            reps: parseInt(card.querySelector('.reps-input').value),
+            weight: parseFloat(card.querySelector('.weight-input').value)
+        });
+    });
+
+    try {
+        const response = await fetch('{{ url_for("complete_training", workout_id=workout.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ exercises })
+        });
+
+        if (response.ok) {
+            document.getElementById('successModal').style.display = 'flex';
+        }
+    } catch (error) {
+        alert('Error saving workout. Please try again.');
+    }
+});
+</script>
+{% endblock %}

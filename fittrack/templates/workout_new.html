@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}New Workout - FitTrack{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>Create New Workout Program</h1>
+
+    <form method="POST" class="form-card">
+        <div class="form-group">
+            <label for="name">Workout Name</label>
+            <input type="text" id="name" name="name" placeholder="e.g., Workout A - Chest & Triceps" required>
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Create Workout</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
